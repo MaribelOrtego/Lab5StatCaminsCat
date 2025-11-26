@@ -1,0 +1,405 @@
+---
+title: "Lab5 - Regressió Lineal Múltiple: Problemes i Diagnòstic"
+subtitle: "
+<div id='logo-nom-subtitle' style='text-align:center;'>
+  <img src='www/logoUPC.png' style='height:50px; display:block; margin:0 auto 5px auto;'>
+  <p style='margin:0; font-weight:bold; color:#0055A4 !important; font-size:16px;'>Maribel Ortego </p>
+</div>"
+author: "Maribel Ortego"
+date: "`r format(Sys.time(), '%Y %B %d')`"
+
+output:
+  learnr::tutorial:
+    progressive: false
+    theme:
+      bslib: true
+      bootswatch: minty
+    css:
+      - "css/styles.css"
+      - "css/hero-image-css-v2.css"
+    includes:
+      in_header: "www/hero-image-PiE.html"
+    number_sections: TRUE
+    toc: true
+    toc_depth: 4
+    toc_float: true
+
+runtime: shiny_prerendered
+---
+
+```{r generaloptions, include=FALSE}
+# Configuració general
+library(learnr)
+knitr::opts_chunk$set(
+  echo = TRUE,
+  fig.width = 6,
+  out.width = "50%",
+  fig.align = "center",
+  fig.caption = TRUE
+)
+```
+
+# 📌 Introducció
+
+En aquest Lab veurem una regressió lineal múltiple que presenta problemes en la verificació de les hipòtesis del model. A més, introduïrem una sèrie de contrastos d'hipòtesis que ens permeten complementar els contrastos visuals de les hipòtesis. Veurem una possible solució aplicable al problema observat en aquesta situació.
+
+\section{Situació de referència}
+
+Una companyia de manufactures desitja predir el cost unitari de fabricació $Y$ d'un nou tipus de biga en una funció de la taxa de producció (que varia en el temps), $X_1$, i dels costos de material i de mà d'obra $X_2$. Es van recollir dades durant un període de 20 mesos durant el qual la taxa de producció i els costos de material i mà d'obra van experimentar una fluctuació molt àmplia. La taxa de producció es va mesurar com un percentatge de la capacitat total de producció, i es va utilitzar un índex apropiat per a reflectir els costos de material i mà d'obra. Les observacions es troben al fitxer \verb"preu-biga-sim-residusprob.csv". 
+
+Tenim com objectiu obtenir l'equació del model de regressió per a predir el cost per unitat. Considerarem el cost unitari de fabricació com a variable de resposta i la taxa de producció com a variable predictora.
+
+
+## Lectura de dades i llibreries
+
+::: {.infobox .caution data-latex="{caution}"}
+**Recorda establir correctament el directori de treball** abans de començar a llegir les dades.
+:::
+
+En primer lloc cridarem les llibreries que necessitarem en aquest Lab:
+```{r llibreries}
+library(car)
+library(lmtest)
+```
+
+::: {.infobox .circle data-latex="{circle}"}
+
+***AVÍS!***
+
+Obriu el fitxer **"preu-biga-sim-residusprob.csv"** utilitzant el Bloc de notes.  
+Observeu el format del fitxer. Com estan separades les columnes? amb tabulador, coma, punt i coma, espai?; Estan inclosos els noms de les variables? Hi ha files inicials amb comentaris?
+:::
+
+Llegim les dades tenint en compte la seva estructura:
+
+```{r lectura_dades, echo=TRUE}
+cb <- read.table("preu-biga-sim-residusprob.csv", sep=";", header=TRUE, dec=".")
+names(cb)
+```
+
+# Predicció del cost unitari. 
+
+Predirem el log cost unitari de la biga a partir de la logtaxa de producció i el logcost de material. 
+
+Farem servir com a guia aquestes preguntes:
+\begin{itemize}
+\item	Executeu el model de regressió múltiple on es prediu el cost unitari a partir de la taxa de producció i els costos de material i mà d'obra. 
+     \begin{itemize}
+     \item Guardeu els residus sense tipificar. 
+     \item Representeu els gràfics de diagnòstic del model i verifiqueu si es compleixen les hipòtesis
+     \item Valoreu la qualitat d'aquest model.
+     \end{itemize}
+\item	Representeu els residus guardats prèviament contra $X_1$ i contra $X_2$.
+S'observa alguna tendència? 
+\item És aconsellable utilitzar un model de regressió  lineal més complex per a descriure el cost unitari? Quin? Estimeu els paràmetres i valoreu la qualitat del nou model.
+\end{itemize}
+
+
+## Model inicial
+
+Establim el model:
+
+```{r model_inicial, echo=TRUE}
+LinearModel.1 <- lm(logCostbiga ~ logTaxaProd + logCostMaterial, data=cb)
+```
+
+Donat que es tracta d'un model de regressió lineal múltiple, cal controlar la colinealitat de les variables predictores: 
+
+### 🖊Exercici: "Calcula el vif del model executat"
+
+```{r model_inicialvif, exercise=TRUE}
+
+```
+
+Una vegada descartada la colinealitat entre les variables predictores, cal valorar si es compleixen les hipòtesis del model. 
+
+::: {.infobox .travel data-latex="{travel}"}
+ Recorda que les hipòtesis del model s'estableixen sobre els residus. Els residus han de ser centrats, homocedàstics (mateixa variança), incorrelacionats i amb distribució normal:
+\[\epsilon_i \sim N(0, $\sigma^2$) \ , incorrelacionats  \ . \] 
+:::
+
+Representem les gràfiques de diagnòstic conjuntament:
+```{r model_inicial_plots, echo=TRUE, fig.cap="Diagnostic plots for LinearModel.1"}
+par(mfrow=c(2,2))
+plot(LinearModel.1)
+par(mfrow=c(1,1))
+```
+A continuació representem les gràfiques individualment, per a poder-les interpretar millor. En primer lloc representem la Gràfica de Residus contra valors predits. Recordeu que en aquesta gràfica comprovem visualment si els residus tenen mitjana 0, si són homocedàstics i si són incorrelacionats.
+
+```{r diagnostic_residuals_vs_fitted, echo=TRUE, fig.cap="Gràfic Residuals vs Valors Predits"}
+plot(LinearModel.1, which=1)
+```
+Què hi veieu a la gràfica? Complim les tres hipòtesis esmentades?
+
+Recordeu que la gràfica Scale-Location ens serveix per a profunditzar en la valoració d'aquestes hipòtesis. Què hi veieu?
+
+```{r diagnostic_scale_location, echo=TRUE, fig.cap="Gràfic Scale-Location"}
+plot(LinearModel.1, which=3)
+```
+
+A continuació representem el `qqplot` de normalitat proporcionat per defecte. En aquesta gràfica comprovem visualment si podem considerar que la distribució dels residus és normal.
+
+```{r diagnostic_normal_qq, echo=TRUE, fig.cap="Gràfic Q-Q dels residus"}
+plot(LinearModel.1, which=2)
+```
+
+Veient la gràfica, tenim motius per a rebutjar que els residus tiguin distribució normal?
+
+I per últim, la gràfica dels punts d'influència ens permet detectar _punts palanca_ , punts que influeixen molt en el nostre model i que hem d'estudiar detingudament. Amb aquest gràfic no comprovem cap hipòtesi del model, però és útil, donada la influència que els punts palanca poden tenir en la interpretació del nostre model. Recordeu que considerem que un punt és influent si la seva distància de Cook és superior a 1, i per això la gràfica indica la zona de distància de Cook superior a 0.5 i a 1 respectivament. Observem que el punt 5 és un punt influent.
+
+```{r diagnostic_leverage, echo=TRUE, fig.cap="Gràfic Residuals vs Leverage"}
+plot(LinearModel.1, which=5)
+```
+
+### Profunditzem la interpretació: Normalitat dels residus
+
+El gràfic de diagnòstic per a la normalitat del residus es pot millorar afegint-hi bandes de confiança.
+
+### 🖊Exercici: "Representa el `qqPlot` dels residus incloent una banda de confiança del 95%". 
+
+```{r normalitat_residus_qqplot,exercise=TRUE, exercise.has_hint=TRUE}
+
+```
+
+```{r normalitat_residus_qqplot-hint,echo=FALSE}
+Utilitza la funció inclosa al paquet `car` per a fer la gràfica demanada.
+```
+Observem que hi ha alguns punts que queden fora de la banda de confiança  del qqPlot que per defecte és del 95$\%$.
+Per a millorar l'interpretació, podríem canviar l'amplada de la banda de confiança,  per una del 99$\%$:
+
+### 🖊Exercici:
+
+```{r qqplot-parametre-quiz, echo=FALSE}
+quiz(
+  question("Consulta l'ajuda de la funció `qqPlot`. Quin és el nom del paràmetre amb què podem modificar l'amplada de la banda de confiança?",
+    answer("band"),
+    answer("envelope", correct = TRUE),
+    answer("conf"),
+    answer("altres")
+  )
+)
+```
+
+Tornem a representar el `qqPlot` amb una banda de confiança de 99$\%$:
+
+```{r normalitat_residus_qplot2, echo=TRUE, fig.cap="Q-Q plot amb sobre d'envolupament per a LinearModel.1"}
+car::qqPlot(LinearModel.1$residuals, envelope=list(level=0.99))
+```
+Observem que el punt 5 queda fora de la banda. Com són poques observacions, una d'elles és més de l'1$\%$ de les observacions, i per tant hauríem de rebutjar la hipòtesi primària de normalitat.
+
+Però recorda que convé complementar sempre els diagnòstics visuals amb un contrast d'hipòtesis. En aquest cas necessitem un contrast de bondat d'ajust de la normal.
+
+Per exemple, podem utilitzar el contrast de Kolmogorov-Smirnov. Aquest és un contrast general, que podem aplicar considerant qualsevol model continu com a model de referència. Aquest contrast mesura diferències entre la funció de distribució empírica dels residus i la funció de distribució de referència, la normal en aquest cas:
+
+```{r testnorm_residus_qplot2, echo=TRUE}
+ks.test(LinearModel.1$residuals, 'pnorm')
+```
+
+### 🖊Exercici:
+
+```{r ks-test-quiz, echo=FALSE}
+quiz(
+  question("Donat els resultats del contrast de Kolmogorov-Smirnov, i donat un nivell de significació $ \alpha =0.05$, la decisió que hem de prendre és:",
+    answer("Rebutjar la hipòtesi primària, és a dir, no podem considerar que els residus del model siguin normals", correct = TRUE),
+    answer("No podem rebutjar la hipòtesi primària, és a dir, no podem considerar que els residus del model siguin normals"),
+    answer("No podem rebutjar la hipòtesi primària, és a dir, podem considerar que els residus del model són normals"),
+    answer("Cap de les anteriors")
+  )
+)
+```
+
+Apart del contrast general K-S, també podem utilitzar d'altres contrastos que són específics per a normalitat, és a dir, que només poden considerar la normal com a distribució de referència:
+
+### 🖊Exercici: Aplica un test específic de normalitat als residus
+
+```{r testnorm_residus_qplot22, exercise=TRUE, exercise.has_hint=TRUE}
+
+```
+
+```{r testnorm_residus_qplot22-hint}
+Per exemple, pots utilitzar Shapiro-Wilks
+```
+
+Hi ha nombrosos tests  de bondat d'ajust específics per a normalitat. Els estadístics de contrast mesuren diferències en zones diferents de la distribució (uns es centren en les diferències a les cues, d'altres al centre de la distribució). Per això podríem tenir conclusions diferents si n'utilitzem més d'un. Però tot i això, o precisament per això, convé utilitzar-ne més d'un, per exemple l'Anderson-Darling:
+
+```{r contrastos_residus_extra, echo=TRUE}
+nortest::ad.test(LinearModel.1$residuals)
+```
+
+Quina és la conclusió que treiem?
+
+::: {.infobox .caution data-latex="{caution}"}
+A partir d'ara, quan realitzeu la comprovació de les hipòtesis del model, no només ho fareu visualment, sino complementant amb els contrastos que pertoquin.
+:::
+
+### Profunditzem la interpretació: homocedasticitat dels residus
+
+Com a complement del gràfic de Residus contra valors ajustats, plantejarem el contrast d'hipòtesis de Breusch-Pagan, en el que contrastarem:
+
+$$H_{0}: \text{ Els residus són homocedàstics (és a dir, la variança dels residus és constant)}$$
+$$H_{1}: \text{ Els residus són heterocedàstics (és a dir, la variança dels residus no és constant)}$$
+
+```{r contrastos_residus_extra2, echo=TRUE}
+lmtest::bptest(LinearModel.1)
+```
+
+Quina conclusió obtenim en aquest cas?
+
+### Profunditzem la interpretació: incorrelació dels residus
+
+Com a complement del gràfic de Residus contra valors ajustats, aplicarem el test de Durbin-Watson, que contrasta si els residus són incorrelacionats
+
+$$H_{0}: \text{ Els residus tenen correlació nu·la (és a dir, són incorrelacionats)}$$
+$$H_{0}: \text{ Els residus tenen correlació diferent de zero (és a dir, són correlacionats)}$$
+
+```{r contrastos_residus_extra3, echo=TRUE}
+lmtest::dwtest(LinearModel.1, alternative = "two.sided")
+```
+Quina conclusió hem de treure en aquest cas?
+
+## Resum del model 
+ 
+ En aquest cas NO complim les hipòtesis del model. Cal solucionar-ho abans de valorar el resum del model. Donat que no es compleixen les hipòtesis, les conclusions que obtinguem podrien ser errònies.
+
+<!-- ```{r summary_model1, echo=TRUE} -->
+<!-- summary(LinearModel.1) -->
+<!-- ``` -->
+
+# Problemes al model
+
+Veient els diagnòstics sobre els residus veiem que no es compleixen les hipòtesis del model, i per tant cal solucionar-los  abans de seguir amb la interpretació del model.
+
+Solucionar problemes amb les hipòtesis del model no sempre és fàcil. 
+
+## Problemes amb la incorrelació dels residus. Primer enfoc: diagnòstic visual,  relació amb predictors
+
+Els residus del model són la diferència entre els valors observats i els valors predits pel model. Aquestes diferències poden ser degudes a variables que no hem mesurat o al fet que les variables utilitzades hagin d'estar presents en altres escales, entre d'altres causes. En aquest exemple no disposem de més variables que incloure al model, però sí podem visualitzar si hi ha relació entre les variables predictores disponibles i els residus:
+
+```{r diagnostica_predictors1, echo=TRUE, fig.cap="Residuals vs variables predictores"}
+par(mfrow=c(1,2))
+plot(cb$logCostMaterial, LinearModel.1$residuals)
+plot(cb$logTaxaProd, LinearModel.1$residuals)
+par(mfrow=c(1,1))
+```
+
+Veiem que els residus contenen clarament una influència quadràtica de la taxa de producció. Per tant, per a intentar solventar el problema de correlació dels residus, podem definir un nou model de regressió que inclogui aquesta variable al quadrat.
+
+# Segon model
+
+Definirem un model polinomial amb les dues variables predictores:
+
+## Segon model: definició
+
+Com hem vist que hi ha una influència quadràtica de logTaxa, definim la variable logTaxa al quadrat. A continuació establim el nou model de regressió. Posteriorment controlem la col·linealitat:
+
+```{r nou_model, echo=TRUE}
+cb$logTaxaProdsq <- cb$logTaxaProd * cb$logTaxaProd
+LinearModel.2 <- lm(logCostbiga ~ logTaxaProdsq + logCostMaterial, data=cb)
+vif(LinearModel.2)
+```
+
+Representem els gràfics de diagnòstic per a verificar si es compleixen les hipòtesis del model:
+
+```{r nou_model_plots, echo=TRUE, fig.cap="Diagnostic plots for LinearModel.2"}
+par(mfrow=c(2,2))
+plot(LinearModel.2)
+par(mfrow=c(1,2))
+```
+
+Ens centrem amb el gràfic de diagnòstic que més problemes presentava:
+
+```{r residuals_vs_fitted_model2, echo=TRUE, fig.cap="Gràfic Residuals vs Valors Predits per a LinearModel.2"}
+plot(LinearModel.2, which=1)
+```
+
+Reviseu el plot: els redidus són centrats? Són homocedàstics? Són incorrelacionats?
+
+Complementem amb els contrastos presentats anteriorment:
+
+```{r contrastos_residus, echo=TRUE}
+lmtest::bptest(LinearModel.2)
+lmtest::dwtest(LinearModel.2, alternative = "two.sided")
+```
+Quines conclusions obtenim dels contrastos? Són les mateixes que havíem obtingut visualment?
+
+## Contrastem la normalitat dels residus
+
+A més del gràfic proporcionat per defecte, representem el `qqPlot` de normalitat dels residus del model, que afegeix la banda de confiança:
+
+```{r nou_model_plots_qq, echo=TRUE, fig.cap="Q-Q plot dels residus de LinearModel.2"}
+qqPlot(LinearModel.2$residuals)
+```
+Hi ha motius per a rebutjar la normalitat dels residus?
+
+Complementem el diagnòstic de normalitat amb els contrastos de bondat d'ajust:
+
+```{r contrastos_residus2, echo=TRUE}
+shapiro.test(LinearModel.2$residuals)
+ks.test(LinearModel.2$residuals, 'pnorm')
+nortest::ad.test(LinearModel.2$residuals)
+```
+
+### 🖊Exercici: 
+
+```{r contrastos-normalitat-model2-quiz, echo=FALSE}
+quiz(
+  question("Donat els contrastos de bondat d'ajust normal, quina decisió hem de prendre?",
+    answer("Rebutjar la hipòtesi primària, és a dir, no podem considerar que els residus del model siguin normals"),
+    answer("No podem rebutjar la hipòtesi primària, és a dir, no podem considerar que els residus del model siguin normals"),
+    answer("No podem rebutjar la hipòtesi primària, és a dir, podem considerar que els residus del model són normals", correct = TRUE),
+    answer("Cap de les anteriors")
+  )
+)
+```
+
+
+Per tant, veiem que en aquest segon model sí que es compleixen les hipòtesis de la regressió, i per tant, ara procedirem amb la interpretació complerta del model:
+
+## Resum del nou model
+
+::: {.infobox .travel data-latex="{travel}"}
+En el resum del model verificarem, en aquest ordre, el contrast `F`; els contrastos `t` i el coeficient de determinació $R^2$, per a valorar la conveniènci i la bondat d'ajust del model de regressió definit.
+:::
+
+```{r summary_model2, echo=TRUE}
+summary(LinearModel.2)
+```
+
+En primer lloc observem el resultat del contrast F ("tots els coeficients del model excepte $\beta_0$ són nuls" vs "alguns són no nuls"). Observem que el p-valor és molt petit (p-value: < 2.2e-16) i per tant rebutgem la hipòtesi primària. És a dir, el model lineal té sentit.
+A continuació contrastem si els coeficients són nuls un a un ($\beta_i=0$ vs $\beta_i \neq 0$). Veiem que pels tres coeficients, el p-valor és molt petit (<2e-16) i per tant rebutgem l'hipòtesi primària pels tres coeficients. És a dir, mantenim la ordenada a l'origen i les dues variables al model.
+
+Finalment, observem el valor del coeficient de determinació $R^2$, que és 1 (probablement sigui >0.99 i el sistema arrodoneix). És un ajust excel·lent.
+
+Per tant, hem trobat un model molt bo.
+
+### 🖊Exercici: 
+
+Observeu els coeficients estimats. Quant pujarà el preu de la biga si augmentem una unitat la Taxa de producció i una unitat el cost de producció?
+
+## Verifiquem 
+
+Hem millorat força el model respecte el que hem establert inicialment. Verifiquem que els residus d'aquest model no contenen efectes no lineals de les variables predictores:
+
+```{r diagnostica_predictors2, echo=TRUE, fig.cap="Residuals vs logTaxaProd per a LinearModel.2"}
+plot(cb$logTaxaProd, LinearModel.2$residuals)
+```
+
+# Altres problemes que podem trobar
+
+A les aplicacions ens podem trobar que els residus del model plantejat no compleixen una o més de les hipòtesis del model de regressió múltiple. Hem vist un cas on hem pogut solucionar el problema de correlació dels residus. Però no sempre és fàcil, i algunes solucions queden fora de l'abast de la nostra assignatura introductòria. Aquí teniu un parell de suggeriments sobre problemes típics:
+
+* _Residus no normals_. La normalitat dels residus és la base per a que la distribució de l'estadístic de contrast F sigui una F de Fisher o per a que la distribució de l'estadístic de contrast t sigui una t-Student. Si no hi ha normalitat, no podem interpretar adequadament els p-valors obtinguts en aquests contrastos, a no ser que siguin molt extrems. És a dir, si no hi ha normalitat, podem rebutjar la $H_0$ si el p-valor és molt petit  (<2e-16 p.ex.) o no podem rebutjar si és p-valor és molt gran (>0.9), però no podem decidir en els valors intermitjos, perquè la distribució de l'estadístic no serà F (o t).
+
+* _Residus correlacionats_. Una altra situació que pot causar el tenir residus correlacionats són les variables predictores colineals. Cal inspeccionar colinealitat i aplicar tècniques com l'anàlisi de components principals per a generar predictors no correlacionats.
+
+* Altres problemes dels residus s'han d'analitzar per al problema de referència i buscar solucions ad hoc.
+
+# Conclusió {-}
+
+Aquest exercici ens ha permès observar com  els problemes amb els supòsits del model poden correspondre amb una definició incomplerta del model i com petites transformacions poden millorar-ne l’ajust i la interpretabilitat.
+
+# About / Canvis {-}
+
+Material creat per M. Ortego per a les assignatures de Probabilitat i Estadística de l’ETSECCPB - UPC.
+
+Versió 1.0

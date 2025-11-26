@@ -1,0 +1,14 @@
+Package: Lab5StatCaminsEng
+Title: Lab5 Tutorial StatCamins. Catalan version.
+Version: 0.1.0
+Authors@R: 
+    person("Maribel", "Ortego", 
+    email= "ma.isabel.ortego@upc.edu", 
+    role = c("aut", "cre"))
+Description: Lab5 Tutorial. StatCamins. Multiple linear regression with problems. Catalan version
+License:  AGPL-3.0 license 
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+Suggests: 
+    learnr
