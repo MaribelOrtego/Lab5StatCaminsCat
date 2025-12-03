@@ -58,6 +58,7 @@ Tenim com objectiu obtenir l'equació del model de regressió per a predir el co
 
 En primer lloc cridarem les llibreries que necessitarem en aquest Lab:
 ```{r llibreries}
+library(here)
 library(car)
 library(lmtest)
 ```
